@@ -1,0 +1,27 @@
+# 数据集
+ACNE04/
+
+# 实验输出（所有层级）
+**/logs/
+**/plots/
+**/gradcam_output/
+
+# 模型权重和数据
+*.pth
+*.npz
+*.npy
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 编辑器临时文件
+*.py~
+*.py.py~
+
+# pytest 缓存
+.pytest_cache/
+
+# 运行日志
+*.log
+*.jsonl
