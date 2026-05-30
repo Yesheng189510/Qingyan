@@ -18,4 +18,4 @@ If you find this work helpful, please cite it as
 }
 ```
 
-ATTN: This work is free for academic usage. For other purposes, please contact Xiaoping Wu (xpwu95@163.com).
+ATTN: This work is free for academic usage. For other purposes, please contact Xiaoping Wu (xpwu95@163.com)..
