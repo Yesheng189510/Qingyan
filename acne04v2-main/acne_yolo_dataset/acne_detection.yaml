@@ -1,6 +1,4 @@
-# YOLO dataset config — paths relative to this file's directory
-path: .
-
+# YOLO dataset config — omit `path` so Ultralytics uses this file's directory as dataset root
 train: images/train
 val: images/val
 
