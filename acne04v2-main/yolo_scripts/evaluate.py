@@ -1,22 +1,30 @@
-from ultralytics import YOLO
-import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-import torch
-torch.backends.cudnn.enabled = False
+import sys
+from pathlib import Path
+
 from tqdm import tqdm
+from ultralytics import YOLO
 
-trained_model = YOLO('runs/yolov8x_1280_acne_detection_23022024_2/weights/best.pt')
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from paths import setup_project_path, ACNE04V2_YOLO_BEST_WEIGHTS, ACNE04V2_YOLO_YAML, get_device
 
-for thresh in tqdm(range(10,55,5)):
+setup_project_path()
+
+MODEL_WEIGHTS = Path(ACNE04V2_YOLO_BEST_WEIGHTS)
+
+trained_model = YOLO(str(MODEL_WEIGHTS))
+device = get_device()
+
+for thresh in tqdm(range(10, 55, 5)):
     metrics = trained_model.val(
-        data = 'acne_clinical_data.yaml',
+        data=ACNE04V2_YOLO_YAML,
         imgsz=1280,
         batch=6,
-        conf=thresh/100,  # object confidence threshold for detection
-        iou=0.6,   # intersection over union (IoU) threshold for NMS
-        save_json = True,
-        )
-    
-    print('conf', thresh/100)
-    print('map50:', metrics.box.map50)  # mean average precision at iou=0.5
-    print('sensitivity', metrics.box.r) # recall / sensitivity
+        conf=thresh / 100,
+        iou=0.6,
+        save_json=True,
+        device=device,
+    )
+
+    print('conf', thresh / 100)
+    print('map50:', metrics.box.map50)
+    print('sensitivity', metrics.box.r)

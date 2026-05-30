@@ -1,230 +1,127 @@
-import os
+"""Regenerate YOLO labels from Acne04-v2 JSON.
+
+Uses images already present in acne_yolo_dataset/images/{train,val}.
+Does NOT read from data/ACNE04 — v2 is a separate self-contained dataset.
+"""
 import json
-import random
-import shutil
+import os
+import sys
 from pathlib import Path
 
-import cv2
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from paths import (
+    setup_project_path,
+    ACNE04V2_ANNOTATIONS,
+    ACNE04V2_YOLO_ROOT,
+    ACNE04V2_YOLO_YAML,
+    ACNE04V2_YOLO_TRAIN_IMAGES,
+    ACNE04V2_YOLO_VAL_IMAGES,
+    ACNE04V2_YOLO_TRAIN_LABELS,
+    ACNE04V2_YOLO_VAL_LABELS,
+    acne04v2_image_split,
+)
 
-# =====================================================
-# Acne04-v2 JSON -> YOLO Dataset Converter
-# =====================================================
+setup_project_path()
 
-# -------------------------
-# PATH CONFIG
-# -------------------------
-json_path = r"C:\Users\28268\Desktop\LDL-master\acne04v2-main\Acne04-v2_annotations.json"
+SPLIT_DIRS = {
+    'train': (ACNE04V2_YOLO_TRAIN_IMAGES, ACNE04V2_YOLO_TRAIN_LABELS),
+    'val': (ACNE04V2_YOLO_VAL_IMAGES, ACNE04V2_YOLO_VAL_LABELS),
+}
 
-images_path = r"C:\Users\28268\Desktop\LDL-master\code\ACNE04\Classification\JPEGImages"
 
-output_root = r"C:\Users\28268\Desktop\LDL-master\acne_yolo_dataset"
+def write_yolo_labels(img_info, anns, label_path):
+    width = img_info['width']
+    height = img_info['height']
 
-# -------------------------
-# TRAIN / VAL SPLIT
-# -------------------------
-train_ratio = 0.8
-random_seed = 42
+    lines = []
+    for ann in anns:
+        cx, cy = ann['coordinates']
+        radius = ann['radius']
 
-# =====================================================
-# OUTPUT STRUCTURE
-# =====================================================
+        x1 = max(0, cx - radius)
+        y1 = max(0, cy - radius)
+        x2 = min(width, cx + radius)
+        y2 = min(height, cy + radius)
 
-train_img_dir = Path(output_root) / "images" / "train"
-val_img_dir = Path(output_root) / "images" / "val"
-
-train_label_dir = Path(output_root) / "labels" / "train"
-val_label_dir = Path(output_root) / "labels" / "val"
-
-train_img_dir.mkdir(parents=True, exist_ok=True)
-val_img_dir.mkdir(parents=True, exist_ok=True)
-
-train_label_dir.mkdir(parents=True, exist_ok=True)
-val_label_dir.mkdir(parents=True, exist_ok=True)
-
-# =====================================================
-# LOAD JSON
-# =====================================================
-
-with open(json_path, "r", encoding="utf-8") as f:
-    data = json.load(f)
-
-images_info = data["images"]
-annotations = data["annotations"]
-
-print(f"Total images: {len(images_info)}")
-print(f"Total annotations: {len(annotations)}")
-
-# =====================================================
-# GROUP ANNOTATIONS
-# =====================================================
-
-ann_dict = {}
-
-for ann in annotations:
-
-    image_id = ann["image_id"]
-
-    if image_id not in ann_dict:
-        ann_dict[image_id] = []
-
-    ann_dict[image_id].append(ann)
-
-# =====================================================
-# TRAIN / VAL SPLIT
-# =====================================================
-
-random.seed(random_seed)
-
-random.shuffle(images_info)
-
-split_index = int(len(images_info) * train_ratio)
-
-train_images = images_info[:split_index]
-val_images = images_info[split_index:]
-
-print(f"Train images: {len(train_images)}")
-print(f"Val images: {len(val_images)}")
-
-# =====================================================
-# CONVERT FUNCTION
-# =====================================================
-
-def process_dataset(image_list, img_out_dir, label_out_dir):
-
-    success_count = 0
-    skip_count = 0
-
-    for img_info in image_list:
-
-        image_id = img_info["id"]
-        file_name = img_info["file_name"]
-
-        width = img_info["width"]
-        height = img_info["height"]
-
-        src_img_path = os.path.join(images_path, file_name)
-
-        # -------------------------
-        # image exists?
-        # -------------------------
-        if not os.path.exists(src_img_path):
-
-            print("Missing image:", src_img_path)
-            skip_count += 1
+        bw = x2 - x1
+        bh = y2 - y1
+        if bw <= 0 or bh <= 0:
             continue
 
-        # -------------------------
-        # copy image
-        # -------------------------
-        dst_img_path = img_out_dir / file_name
+        x_center = (x1 + x2) / 2 / width
+        y_center = (y1 + y2) / 2 / height
+        bw_n = bw / width
+        bh_n = bh / height
 
-        shutil.copy(src_img_path, dst_img_path)
+        if any(v < 0 or v > 1 for v in (x_center, y_center, bw_n, bh_n)):
+            continue
 
-        # -------------------------
-        # label path
-        # -------------------------
-        label_path = label_out_dir / f"{Path(file_name).stem}.txt"
+        lines.append(f"0 {x_center:.6f} {y_center:.6f} {bw_n:.6f} {bh_n:.6f}\n")
 
-        # -------------------------
-        # get annotations
-        # -------------------------
-        anns = ann_dict.get(image_id, [])
-
-        # -------------------------
-        # write YOLO labels
-        # -------------------------
-        with open(label_path, "w") as f:
-
-            for ann in anns:
-
-                cx, cy = ann["coordinates"]
-                radius = ann["radius"]
-
-                # ---------------------------------
-                # convert circle -> bbox
-                # ---------------------------------
-                x1 = max(0, cx - radius)
-                y1 = max(0, cy - radius)
-
-                x2 = min(width, cx + radius)
-                y2 = min(height, cy + radius)
-
-                bw = x2 - x1
-                bh = y2 - y1
-
-                # ---------------------------------
-                # skip invalid boxes
-                # ---------------------------------
-                if bw <= 0 or bh <= 0:
-                    continue
-
-                # ---------------------------------
-                # YOLO normalize
-                # ---------------------------------
-                x_center = (x1 + x2) / 2 / width
-                y_center = (y1 + y2) / 2 / height
-
-                bw = bw / width
-                bh = bh / height
-
-                # ---------------------------------
-                # final safety check
-                # ---------------------------------
-                values = [x_center, y_center, bw, bh]
-
-                if any(v < 0 or v > 1 for v in values):
-                    continue
-
-                # class_id = 0
-                f.write(
-                    f"0 {x_center:.6f} {y_center:.6f} {bw:.6f} {bh:.6f}\n"
-                )
-
-        success_count += 1
-
-    print("\nFinished.")
-    print("Success:", success_count)
-    print("Skipped:", skip_count)
+    label_path.parent.mkdir(parents=True, exist_ok=True)
+    label_path.write_text(''.join(lines), encoding='utf-8')
 
 
-# =====================================================
-# RUN
-# =====================================================
+def main():
+    with open(ACNE04V2_ANNOTATIONS, 'r', encoding='utf-8') as f:
+        data = json.load(f)
 
-print("\nProcessing TRAIN dataset...")
-process_dataset(
-    train_images,
-    train_img_dir,
-    train_label_dir
-)
+    id_to_info = {img['id']: img for img in data['images']}
+    ann_dict = {}
+    for ann in data['annotations']:
+        ann_dict.setdefault(ann['image_id'], []).append(ann)
 
-print("\nProcessing VAL dataset...")
-process_dataset(
-    val_images,
-    val_img_dir,
-    val_label_dir
-)
+    print(f"JSON: {ACNE04V2_ANNOTATIONS}")
+    print(f"Dataset root: {ACNE04V2_YOLO_ROOT}")
 
-# =====================================================
-# YAML
-# =====================================================
+    stats = {'train': 0, 'val': 0, 'skipped': 0}
 
-yaml_text = f"""
-path: {output_root.replace(os.sep, "/")}
+    for split, (img_dir, label_dir) in SPLIT_DIRS.items():
+        img_dir = Path(img_dir)
+        label_dir = Path(label_dir)
+
+        if not img_dir.is_dir():
+            print(f"Warning: missing {img_dir}")
+            continue
+
+        for img_path in sorted(img_dir.iterdir()):
+            if img_path.suffix.lower() not in ('.jpg', '.jpeg', '.png'):
+                continue
+
+            file_name = img_path.name
+            split_found = acne04v2_image_split(file_name)
+            if split_found != split:
+                continue
+
+            img_info = next(
+                (info for info in data['images'] if info['file_name'] == file_name),
+                None,
+            )
+            if img_info is None:
+                print(f"No JSON entry for {file_name}, skip")
+                stats['skipped'] += 1
+                continue
+
+            anns = ann_dict.get(img_info['id'], [])
+            label_path = label_dir / f"{img_path.stem}.txt"
+            write_yolo_labels(img_info, anns, label_path)
+            stats[split] += 1
+
+    print(f"Labels written — train: {stats['train']}, val: {stats['val']}, skipped: {stats['skipped']}")
+
+    yaml_text = """# YOLO dataset config — paths relative to this file's directory
+path: .
 
 train: images/train
 val: images/val
 
 nc: 1
-names: ["acne"]
+names:
+  0: acne
 """
+    Path(ACNE04V2_YOLO_YAML).write_text(yaml_text, encoding='utf-8')
+    print("YAML saved:", ACNE04V2_YOLO_YAML)
 
-yaml_path = Path(output_root) / "acne_detection.yaml"
 
-with open(yaml_path, "w") as f:
-    f.write(yaml_text)
-
-print("\nYAML saved:")
-print(yaml_path)
-
-print("\nDataset conversion complete!")
+if __name__ == '__main__':
+    main()

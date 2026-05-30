@@ -1,0 +1,9 @@
+# YOLO dataset config — paths relative to this file's directory
+path: .
+
+train: images/train
+val: images/val
+
+nc: 1
+names:
+  0: acne
