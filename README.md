@@ -5,7 +5,7 @@ This work was accepted by ICCV 2019 [[paper](http://xiaopingwu.cn/assets/paper/i
 
 ### ACNE04 Dataset
 
-The ACNE04 dataset can be downloaded from [Baidu](https://pan.baidu.com/s/15JQlymnhnEmEt8Q5zpJQDw) (pw: fbrm) or [Google](https://drive.google.com/drive/folders/18yJcHXhzOv7H89t-Lda6phheAicLqMuZ?usp=sharing).
+Place the dataset under `data/ACNE04/` (see `paths.py` for the exact layout). The ACNE04 dataset can be downloaded from [Baidu](https://pan.baidu.com/s/15JQlymnhnEmEt8Q5zpJQDw) (pw: fbrm) or [Google](https://drive.google.com/drive/folders/18yJcHXhzOv7H89t-Lda6phheAicLqMuZ?usp=sharing).
 
 ### Additional Information
 If you find this work helpful, please cite it as

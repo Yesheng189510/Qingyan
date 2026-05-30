@@ -2,6 +2,9 @@
 # standard library
 import os, sys
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from paths import trainval_path, test_path
+
 # third-party library
 import numpy as np
 import collections
@@ -85,8 +88,8 @@ for i in range(3):
     for cross_val_index in cross_val_lists:
         # log.write('\n\ncross_val_index: ' + cross_val_index + '\n\n')
 
-        TRAIN_FILE = '/home/ubuntu3/wxp/datasets/acne4/VOCdevkit2007/VOC2007/ImageSets/Main/NNEW_trainval_' + cross_val_index + '.txt'
-        TEST_FILE = '/home/ubuntu3/wxp/datasets/acne4/VOCdevkit2007/VOC2007/ImageSets/Main/NNEW_test_' + cross_val_index + '.txt'
+        TRAIN_FILE = trainval_path(cross_val_index)
+        TEST_FILE = test_path(cross_val_index)
 
         imgs_train, labels_train = np.loadtxt(TRAIN_FILE, dtype=np.str, usecols=[0, 1]).T
         labels_train = labels_train.astype(int)

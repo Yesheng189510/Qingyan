@@ -37,15 +37,17 @@ from torchvision import transforms
 # ── 把项目根目录加入path，确保能import model
 import sys
 sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from model.resnet50 import resnet50
+from paths import DATA_PATH, test_path
 
 # ─────────────────────────────────────────────
 # 默认路径（直接运行时用，也可通过命令行覆盖）
 # ─────────────────────────────────────────────
 DEFAULTS = dict(
-    pth_dir   = r'C:\Users\28268\Desktop\LDL-master\LDL-master\train_dual_sigma\logs\20260516_230852',
-    data_path = r'C:\Users\28268\Desktop\LDL-master\LDL-master\code\ACNE04\Classification\JPEGImages',
-    test_file = r'C:\Users\28268\Desktop\LDL-master\LDL-master\code\ACNE04\Classification\NNEW_test_0.txt',
+    pth_dir   = str(Path(__file__).parent / 'logs'),
+    data_path = DATA_PATH,
+    test_file = test_path(0),
     fold      = 0,
     n_samples = 10,       # 随机抽几张；-1表示全部
     threshold = 0.5,      # 二值化阈值（热力图归一化到0~1后，>threshold的区域为前景）

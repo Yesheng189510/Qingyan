@@ -2,8 +2,10 @@
 # standard library
 import os, sys
 
-# Add current directory to path to ensure imports work correctly
+# Add current directory and project root to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from paths import DATA_PATH, trainval_path, test_path
 
 # third-party library
 import numpy as np
@@ -45,10 +47,6 @@ lr_steps = [30, 60, 90, 120]
 
 np.random.seed(42)
 
-# Use relative path instead of hard-coded absolute path
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_PATH = os.path.join(BASE_DIR, 'ACNE04', 'Classification', 'JPEGImages')
-
 os.makedirs('./logs', exist_ok=True)
 log = Logger()
 log.open(LOG_FILE_NAME, mode="a")
@@ -66,8 +64,8 @@ def criterion(lesions_num):
 
 
 def trainval_test(cross_val_index, sigma, lam):
-    TRAIN_FILE = os.path.join(BASE_DIR, 'ACNE04', 'Classification', 'NNEW_trainval_' + cross_val_index + '.txt')
-    TEST_FILE = os.path.join(BASE_DIR, 'ACNE04', 'Classification', 'NNEW_test_' + cross_val_index + '.txt')
+    TRAIN_FILE = trainval_path(cross_val_index)
+    TEST_FILE = test_path(cross_val_index)
 
     normalize = transforms.Normalize(mean=[0.45815152, 0.361242, 0.29348266],
                                      std=[0.2814769, 0.226306, 0.20132513])

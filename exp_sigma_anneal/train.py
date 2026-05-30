@@ -1,8 +1,10 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # train.py  —  LDL Acne Grading
 # ──────────────────────────────────────────────────────────────────────────────
-import os, json, math, warnings
+import os, json, math, sys, warnings
 warnings.filterwarnings("ignore")
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from paths import DATA_PATH, trainval_path, test_path
 from datetime import datetime
 from pathlib import Path
 from timeit import default_timer as timer
@@ -53,8 +55,6 @@ CFG = dict(
 RUN_ID  = datetime.now().strftime("%Y%m%d_%H%M%S")
 LOG_DIR = Path('./logs') / RUN_ID
 LOG_DIR.mkdir(parents=True, exist_ok=True)
-
-DATA_PATH = 'C:/Users/28268/Desktop/LDL-master/LDL-master/code/ACNE04/Classification/JPEGImages'
 
 np.random.seed(CFG['seed'])
 
@@ -149,14 +149,8 @@ def trainval_test(fold_idx: int, cross_val_index: str, lam: float):
     logger   = FoldLogger(LOG_DIR / f'fold_{fold_idx}.jsonl')
     npz_path = LOG_DIR / f'fold_{fold_idx}_best_predictions.npz'
 
-    TRAIN_FILE = (
-        'C:/Users/28268/Desktop/LDL-master/LDL-master/code/'
-        f'ACNE04/Classification/NNEW_trainval_{cross_val_index}.txt'
-    )
-    TEST_FILE = (
-        'C:/Users/28268/Desktop/LDL-master/LDL-master/code/'
-        f'ACNE04/Classification/NNEW_test_{cross_val_index}.txt'
-    )
+    TRAIN_FILE = trainval_path(cross_val_index)
+    TEST_FILE = test_path(cross_val_index)
 
     logger.log({
         "type":         "meta",
