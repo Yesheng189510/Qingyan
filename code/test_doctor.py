@@ -3,7 +3,9 @@
 import os, sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from paths import trainval_path, test_path
+from paths import setup_project_path, trainval_path, test_path, DOCTOR_RESULTS_DIR
+
+setup_project_path()
 
 # third-party library
 import numpy as np
@@ -55,7 +57,7 @@ log = Logger()
 log.open(LOG_FILE_NAME, mode="a")
 
 
-data_dir = 'doctor-results/'
+data_dir = DOCTOR_RESULTS_DIR + os.sep
 doctors = ['expert_a.txt', 'expertb2.txt', 'junior_a.txt', 'junior_b.txt', 'general_a.txt', 'general_b.txt', ]
 
 cross_val_lists = ['0']#, '1', '2', '3', '4']

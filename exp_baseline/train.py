@@ -4,7 +4,9 @@
 import os, json, sys, warnings
 warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from paths import DATA_PATH, trainval_path, test_path
+from paths import setup_project_path, DATA_PATH, trainval_path, test_path
+
+setup_project_path()
 from datetime import datetime
 from pathlib import Path
 from timeit import default_timer as timer

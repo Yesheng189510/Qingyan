@@ -1,17 +1,14 @@
 """Train student model via KD (vanilla or DKD) from ResNet-50 teacher.
 
 Usage:
-    # Use default config (config_kd.py)
-    python train_kd.py --folds "1"
+    # Auto-find teacher weights (logs/<latest>/fold_X_best.pth or mode/)
+    python module3_kd/train_kd.py --folds "1"
+
+    # Point to a specific teacher training run
+    python module3_kd/train_kd.py --folds "1" --teacher_dir logs/20260530_120000
 
     # Override specific params via CLI
-    python train_kd.py --folds "1" --lr 0.0001 --epochs 120
-
-    # Load experiment config from JSON file
-    python train_kd.py --config my_experiment.json
-
-    # JSON config + CLI override (CLI wins)
-    python train_kd.py --config my_experiment.json --epochs 60
+    python module3_kd/train_kd.py --folds "1" --lr 0.0001 --epochs 120
 """
 
 import sys
@@ -32,11 +29,11 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 
 # ── paths ──
 _PROJECT = Path(__file__).resolve().parents[1]
-_QINGYAN = _PROJECT / 'Qingyan-master' / 'train_dual_sigma'
+if str(_PROJECT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT))
 
-for _p in [str(_PROJECT), str(_QINGYAN)]:
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
+from paths import setup_project_path, DATA_PATH, trainval_path, test_path
+setup_project_path()
 
 from model.resnet50 import resnet50 as ResNet50Teacher
 from module3_kd.student_model import get_student
@@ -151,6 +148,57 @@ def load_config(config_path: str | Path) -> dict:
         return json.load(f)
 
 
+def resolve_teacher_checkpoint(fold_idx: int, cfg: dict, project: Path) -> Path:
+    """Locate fold_{fold}_best.pth without requiring a manual copy to mode/.
+
+    Search order:
+      1. cfg['teacher_ckpt']  (supports {fold} placeholder)
+      2. cfg['teacher_dir'] / fold_{fold}_best.pth
+      3. mode/fold_{fold}_best.pth  (legacy layout)
+      4. logs/<latest_run>/fold_{fold}_best.pth  (train_pth.py output)
+    """
+    filename = f'fold_{fold_idx}_best.pth'
+    candidates: list[Path] = []
+
+    ckpt = cfg.get('teacher_ckpt')
+    if ckpt:
+        ckpt_str = str(ckpt)
+        p = Path(ckpt_str.format(fold=fold_idx) if '{fold}' in ckpt_str else ckpt_str)
+        candidates.append(p if p.is_absolute() else project / p)
+
+    teacher_dir = cfg.get('teacher_dir')
+    if teacher_dir:
+        d = Path(teacher_dir)
+        candidates.append((d if d.is_absolute() else project / d) / filename)
+
+    candidates.append(project / 'mode' / filename)
+
+    logs_root = project / 'logs'
+    if logs_root.is_dir():
+        matches = list(logs_root.glob(f'*/{filename}'))
+        if matches:
+            candidates.append(max(matches, key=lambda p: p.stat().st_mtime))
+
+    seen: set[str] = set()
+    for path in candidates:
+        key = str(path.resolve())
+        if key in seen:
+            continue
+        seen.add(key)
+        if path.is_file():
+            return path
+
+    tried = '\n  '.join(str(p) for p in candidates)
+    raise FileNotFoundError(
+        f'Teacher checkpoint not found for fold {fold_idx} ({filename}).\n'
+        f'Searched:\n  {tried}\n'
+        'Train the teacher first:\n'
+        '  python train_dual_sigma/train_pth.py\n'
+        'Or point to an existing run:\n'
+        '  python module3_kd/train_kd.py --teacher_dir logs/<run_id> --folds "1"'
+    )
+
+
 # ── Main train + eval ──────────────────────────────────
 
 def train_one_fold(fold_idx: int, cfg: dict, out_dir: Path):
@@ -160,10 +208,9 @@ def train_one_fold(fold_idx: int, cfg: dict, out_dir: Path):
     logger = FoldLogger(out_dir / f'fold_{fold_idx}.jsonl')
 
     # ── Data files ──
-    data_root = _PROJECT / 'data' / 'ACNE04' / 'Classification'
-    train_file = str(data_root / f'NNEW_trainval_{fold_idx}.txt')
-    test_file  = str(data_root / f'NNEW_test_{fold_idx}.txt')
-    img_dir    = str(data_root / 'JPEGImages')
+    train_file = trainval_path(fold_idx)
+    test_file  = test_path(fold_idx)
+    img_dir    = DATA_PATH
 
     # ── Log meta ──
     logger.log({
@@ -223,13 +270,10 @@ def train_one_fold(fold_idx: int, cfg: dict, out_dir: Path):
     print(f'[Fold {fold_idx}] Train: {len(ds_train)} images, '
           f'Test: {len(ds_test)} images')
 
-    # ── Load teacher ──
+    # ── Load teacher (same fold, validation-best checkpoint — not averaged) ──
     teacher = ResNet50Teacher()
-    ckpt_path = _PROJECT / 'mode' / f'fold_{fold_idx}_best.pth'
-    if not ckpt_path.exists():
-        ckpt_path = _PROJECT / 'mode' / 'fold_1_best.pth'
-        print(f'Warning: fold_{fold_idx} checkpoint not found, '
-              f'using {ckpt_path.name}')
+    ckpt_path = resolve_teacher_checkpoint(fold_idx, cfg, _PROJECT)
+    print(f'[Fold {fold_idx}] Loading teacher from: {ckpt_path}')
     teacher.load_state_dict(torch.load(ckpt_path, map_location=device,
                                        weights_only=True))
     teacher.to(device)
@@ -440,6 +484,11 @@ def main():
                         default=None)
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--out_dir', type=str, default=None)
+    parser.add_argument('--teacher_dir', type=str, default=None,
+                        help='Directory containing fold_X_best.pth teacher weights '
+                             '(default: auto-search mode/ then logs/<latest>/)')
+    parser.add_argument('--teacher_ckpt', type=str, default=None,
+                        help='Explicit teacher checkpoint path; use {fold} for per-fold file')
     args = parser.parse_args()
 
     # ── Build config: DEFAULT → JSON file → CLI overrides ──
@@ -453,8 +502,9 @@ def main():
 
     # Layer 2: CLI arguments (highest priority)
     cli_overrides = {}
+    cli_keys = set(cfg) | {'teacher_dir', 'teacher_ckpt'}
     for k, v in vars(args).items():
-        if v is not None and k in cfg:
+        if v is not None and k in cli_keys:
             cli_overrides[k] = v
     cfg.update(cli_overrides)
 

@@ -28,6 +28,9 @@ from pathlib import Path
 _PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_PROJECT))
 
+from paths import setup_project_path
+setup_project_path()
+
 
 def expand_sweep(search_space: dict) -> list[dict]:
     """Cartesian product of all parameter lists → list of config overrides."""

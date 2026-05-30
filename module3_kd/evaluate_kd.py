@@ -12,10 +12,11 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score, confusion_matrix
 
 _PROJECT = Path(__file__).resolve().parents[1]
-_QINGYAN = _PROJECT / 'Qingyan-master' / 'train_dual_sigma'
-for _p in [str(_PROJECT), str(_QINGYAN)]:
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
+if str(_PROJECT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT))
+
+from paths import setup_project_path, DATA_PATH, test_path
+setup_project_path()
 
 from module3_kd.student_model import StudentResNet18
 from module3_kd.config_kd import CFG as DEFAULT_CFG
@@ -97,9 +98,8 @@ def main():
     print(f'Loaded checkpoint: {args.checkpoint}')
 
     # Data
-    data_root = _PROJECT / 'data' / 'ACNE04' / 'Classification'
-    test_file = str(data_root / f'NNEW_test_{args.fold}.txt')
-    img_dir   = str(data_root / 'JPEGImages')
+    test_file = test_path(args.fold)
+    img_dir   = DATA_PATH
 
     normalize = transforms.Normalize(mean=cfg['mean'], std=cfg['std'])
     test_tfm = transforms.Compose([

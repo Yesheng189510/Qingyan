@@ -76,6 +76,14 @@ CFG = dict(
     resize_train=256,
     resize_test=224,
     crop_size=224,
+
+    # ═══════════════════════════════════════════════════════════════
+    # 9. TEACHER CHECKPOINT (auto-resolved if None)
+    # ═══════════════════════════════════════════════════════════════
+    # train_kd.py searches in order:
+    #   teacher_ckpt → teacher_dir/fold_{fold}_best.pth → mode/ → logs/<latest>/
+    teacher_dir=None,               # e.g. "logs/20260530_120000"
+    teacher_ckpt=None,              # e.g. "logs/run/fold_{fold}_best.pth"
 )
 
 # ═══════════════════════════════════════════════════════════════════

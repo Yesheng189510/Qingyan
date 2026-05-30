@@ -11,6 +11,9 @@ from torchvision import transforms
 _PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_PROJECT))
 
+from paths import setup_project_path
+setup_project_path()
+
 from module3_kd.student_model import StudentResNet18
 from module3_kd.config_kd import CFG
 

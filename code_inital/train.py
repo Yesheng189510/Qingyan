@@ -3,7 +3,9 @@
 import os, sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from paths import DATA_PATH, trainval_path, test_path
+from paths import setup_project_path, DATA_PATH, trainval_path, test_path
+
+setup_project_path()
 
 # third-party library
 import numpy as np

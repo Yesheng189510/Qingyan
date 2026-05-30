@@ -4,7 +4,6 @@ data/ACNE04/
 # 实验输出（所有层级）
 **/logs/
 **/plots/
-**/gradcam_output/
 
 # 模型权重和数据
 *.pth
