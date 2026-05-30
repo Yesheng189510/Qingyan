@@ -1,3 +1,5 @@
+# Qingyan
+
 ## Joint Acne Image Grading and Counting via Label Distribution Learning
 Pytorch implementation of "Joint Acne Image Grading and Counting via Label Distribution Learning"
 
@@ -18,4 +20,4 @@ If you find this work helpful, please cite it as
 }
 ```
 
-ATTN: This work is free for academic usage. For other purposes, please contact Xiaoping Wu (xpwu95@163.com)..
+ATTN: This work is free for academic usage. For other purposes, please contact Xiaoping Wu (xpwu95@163.com).
