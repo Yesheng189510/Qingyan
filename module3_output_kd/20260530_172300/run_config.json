@@ -1,0 +1,53 @@
+{
+  "student_arch": "resnet34",
+  "num_classes": 4,
+  "lr": 0.001,
+  "momentum": 0.9,
+  "weight_decay": 0.0005,
+  "optimizer": "sgd",
+  "lr_scheduler": "cosine",
+  "lr_steps": [
+    30,
+    60
+  ],
+  "lr_decay": 0.5,
+  "cosine_eta_min": 0.0,
+  "epochs": 90,
+  "batch_size": 64,
+  "batch_size_test": 128,
+  "num_workers": 0,
+  "seed": 42,
+  "eval_start_epoch": 5,
+  "kd_method": "dkd",
+  "temperature": 3.0,
+  "alpha_kd": 0.7,
+  "alpha_dkd": 0.5,
+  "use_weighted_sampler": true,
+  "use_mixup": false,
+  "mixup_alpha": 0.2,
+  "rotate_degrees": 20,
+  "use_random_horizontal_flip": true,
+  "mean": [
+    0.45815152,
+    0.361242,
+    0.29348266
+  ],
+  "std": [
+    0.2814769,
+    0.226306,
+    0.20132513
+  ],
+  "resize_train": 256,
+  "resize_test": 224,
+  "crop_size": 224,
+  "teacher_dir": "logs/20260530_155350",
+  "teacher_ckpt": null,
+  "out_dir": "D:\\AAAAHuo Qiuning\\contest\\YingXiang_BME\\Qingyan\\module3_output_kd\\20260530_172300",
+  "folds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ]
+}
